@@ -1,8 +1,18 @@
 #pragma once
+#include <opencv2/opencv.hpp>
+#include <iostream>
+
+using namespace std;
+using namespace cv;
+
 class ImageQualityAssessment
 {
 public:
-	ImageQualityAssessment();
+	Mat referenceImage, sourceImage;
+	int blockSize;
+	ImageQualityAssessment(Mat image1, Mat image2);
 	~ImageQualityAssessment();
+	double ssim();
+	double ssim(Mat& referenceImage, Mat& sourceImage, bool showProgress = false);
 };
 
