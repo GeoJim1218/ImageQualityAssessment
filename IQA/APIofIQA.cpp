@@ -1,17 +1,14 @@
 #pragma once
 #include <opencv2/opencv.hpp>
 #include <iostream>
+#include "APIofIQA.h"
 
 using namespace std;
 using namespace cv;
 
-#define PSNR 1
-#define CV_SSIM 2
-#define MYSSIM 3
-#define HASH 4
-#define DHASH 5
-#define PHASH 6
 
+
+//计算两图间psnr值
 double psnr(Mat referenceImage, Mat sourceImage){
 	Mat diffImage;
 	absdiff(referenceImage, sourceImage, diffImage);
@@ -29,6 +26,7 @@ double psnr(Mat referenceImage, Mat sourceImage){
 	}
 }
 
+//计算两图间ssim值(OPENCV实现)
 double cvSsim(Mat referenceImage, Mat sourceImage){
 	const double C1 = 6.5025, C2 = 58.5225;		//C1=(K1*L)^2,C2=(K2*L)^2,C3=C2/2;K1=0.01,K2=0.03,L=255;
 	Mat Ix, Iy;
@@ -59,6 +57,7 @@ double cvSsim(Mat referenceImage, Mat sourceImage){
 	return ssim;
 }
 
+//计算两图间ssim值（公式实现）
 double mySsim(Mat referenceImage, Mat sourceImage){
 	const double C1 = 6.5025, C2 = 58.5225;		//C1=(K1*L)^2,C2=(K2*L)^2,C3=C2/2;K1=0.01,K2=0.03,L=255;
 	double ssim = 0;
@@ -111,6 +110,12 @@ Mat calcHashCode(Mat src){
 	return mask;
 }
 
+//计算两幅图像间的hash距离
+//计算图像均值Hash指纹
+/*
+优点：速度快。
+缺点：受均值的影响非常大。
+*/
 double hashDistance(Mat referenceImage, Mat sourceImage){
 	Mat referenceHashDistance = calcHashCode(referenceImage);
 	Mat sourceHashDistance = calcHashCode(sourceImage);
@@ -128,7 +133,12 @@ Mat calcPHashCode(Mat src){
 	Mat mask = (image(roi) >= average);
 	return mask;
 }
-
+//计算两幅图像间的phash距离
+//计算图像pHash指纹
+/*
+优点：容忍变形，能够避免伽马校正或直方图均衡带来的影响。
+缺点：速度稍慢。
+*/
 double PhashDistance(Mat referenceImage, Mat sourceImage){
 	Mat referencePHashDistance = calcPHashCode(referenceImage);
 	Mat sourcePHashDistance = calcPHashCode(sourceImage);
@@ -152,6 +162,11 @@ Mat calcDHashCode(Mat src){
 	return mask;
 }
 
+//计算两幅图像间的dhash距离
+//计算图像dHash指纹
+/*
+优点：速度比pHash快，效果比hash好，基于渐变实现
+*/
 double DhashDistance(Mat referenceImage, Mat sourceImage){
 	Mat referenceDHashDistance = calcDHashCode(referenceImage);
 	Mat sourceDHashDistance = calcDHashCode(sourceImage);
@@ -163,6 +178,9 @@ double DhashDistance(Mat referenceImage, Mat sourceImage){
 double IQA(Mat referenceImage, Mat sourceImage, int IQAMethod){
 	if (referenceImage.empty() || sourceImage.empty()){
 		return -1;
+	}
+	if (referenceImage.size() != sourceImage.size()){
+		return -2;
 	}
 	switch (IQAMethod)
 	{
@@ -179,7 +197,35 @@ double IQA(Mat referenceImage, Mat sourceImage, int IQAMethod){
 	case PHASH:
 		return PhashDistance(referenceImage, sourceImage);
 	default:
+		return -3;
+	}
+}
+
+double blockIQA(Mat referenceImage, Mat sourceImage, int size,int IQAMethod){
+	if (referenceImage.empty() || sourceImage.empty()){
+		return -1;
+	}
+	if (referenceImage.size() != sourceImage.size()||size==0){
 		return -2;
 	}
+	double ssim = 1;
+	int unitHeight = referenceImage.rows / size;
+	int unitWidth = referenceImage.cols / size;
+	for (int i = 0; i < size;i++)
+	{
+		for (int j = 0; j < size;j++)
+		{
+			int m = i*unitHeight;
+			int n = i*unitWidth;
+			Mat imgx = referenceImage(Range(m, m + unitHeight), Range(n, n + unitWidth));
+			Mat imgy = sourceImage(Range(m, m + unitHeight), Range(n, n + unitWidth));
+			double blockScore = IQA(imgx, imgy, IQAMethod);
+			if (blockScore < ssim){
+				
+				ssim = blockScore;
+			}
+		}
+	}
+	return ssim;
 }
 

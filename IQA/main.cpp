@@ -1,4 +1,5 @@
 #include "ImageQualityAssessment.h"
+#include "APIofIQA.h"
 #include <ctime>
 int main(int argc,char** argv){
 	string path = argv[1];
@@ -27,6 +28,8 @@ int main(int argc,char** argv){
 	cout << "hash: " << ssim.hashDistance() << endl;
 	cout << "Dhash: " << ssim.DhashDistance() << endl;
 	cout << "Phash: " << ssim.PhashDistance() << endl;
+	cout << "IQA: " << IQA(referenceImage, sourceImage) << endl;
+	cout << "win_ssim: " << blockIQA(referenceImage, sourceImage, 2) << endl;
 	//cout << ssim.sigma(referenceImage, 0, 0) << endl;
 	waitKey();
 	return 0;
